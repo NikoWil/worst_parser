@@ -1,0 +1,112 @@
+<domain> ::= (define (domain <name>)
+    [<require-def>]
+    [<types-def>]:typing
+    [<constants-def>]
+    [<predicates-def>]
+    <comp-task-def>*
+    <method-def>*
+    <action-def>*)
+
+<require-def> ::=
+    (:requirements <require-key>+)
+<require-key> ::= ...
+<types-def> ::= (:types <types>+)
+<types> ::= <typed list (name)>
+    | <base-type>
+$   <base-type> ::= <name>
+<constants-def> ::=
+    (:constants <typed list (name)>)
+$   <predicates-def> ::=
+$       (:predicates <atomic-formula-skeleton>+)
+$   <atomic-formula-skeleton> ::=
+$       (<predicate> <typed list (variable)>)
+$   <predicate> ::= <name>
+$   <variable> ::= ?<name>
+$   <typed list (x)> ::= x+ - <type>
+$        [<typed list (x)>]
+$   <primitive-type> ::= <name>
+$   <type> ::= (either <primitive-type>+)
+$   <type> ::= <primitive-type>
+
+<method-def> ::= (:method <name>
+    :parameters (<typed list (variable)>)
+    :task (<task-symbol> <term>*)
+    [:precondition <gd>]:htn−method−prec
+    <tasknetwork-def>)
+
+<tasknetwork-def> ::=
+    [:[ordered-][sub]tasks
+        <subtask-defs>]
+    [:order[ing] <ordering-defs>]
+    [:constraints <constraint-defs>]
+
+<subtask-defs> ::= () | <subtask-def>
+    | (and <subtask-def>+)
+<subtask-def> ::= (<task-symbol> <term>*)
+    | (<subtask-id> (<task-symbol> <term>*))
+<subtask-id> ::= <name>
+
+<ordering-defs> ::= () | <ordering-def>
+    | (and <ordering-def>+)
+<ordering-def> ::=
+    (<subtask-id> "<" <subtask-id>)
+
+<constraint-defs> ::= () | <constraint-def>
+    | (and <constraint-def>+)
+<constraint-def> ::= ()
+    | (not (= <term> <term>))
+    | (= <term> <term>)
+
+<action-def> ::= (:action <task-def>
+    [:precondition <gd>]
+    [:effects <effect>])
+
+<gd> ::= ()
+<gd> ::= <atomic formula (term)>
+<gd> ::=:negative-preconditions <literal (term)>
+<gd> ::= (and <gd>*)
+<gd> ::=:disjunctive-preconditions (or <gd>*)
+<gd> ::=:disjunctive-preconditions (not <gd>)
+<gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+<gd> ::=:existential-preconditions
+    (exists (<typed list (variable)>*) <gd>)
+<gd> ::=:universal-preconditions
+    (forall (<typed list (variable)>*) <gd>)
+<gd> ::= (= <term> <term>)
+<literal (t)> ::= <atomic formula(t)>
+<literal (t)> ::= (not <atomic formula(t)>)
+<atomic formula(t)> ::= (<predicate> t*)
+<term> ::= <name>
+<term> ::= <variable>
+<effect> ::= ()
+<effect> ::= (and <c-effect>*)
+<effect> ::= <c-effect>
+<c-effect> ::=:conditional-effects
+    (forall (<variable>*) <effect>)
+<c-effect> ::=:conditional-effects
+    (when <gd> <cond-effect>)
+<c-effect> ::= <p-effect>
+<p-effect> ::= (not <atomic formula(term)>)
+<p-effect> ::= <atomic formula(term)>
+<cond-effect> ::= (and <p-effect>*)
+<cond-effect> ::= <p-effect>
+
+<problem> ::= (define (problem <name>)
+    (:domain <name>)
+    [<require-def>]
+    [<p-object-declaration>]
+    [<p-htn>]
+<p-init>
+    [<p-goal>])
+<p-object-declaration> ::=
+    (:objects <typed list (name)>)
+<p-init> ::= (:init <init-el>*)
+<init-el> ::= <literal (name)>
+<p-goal> ::= (:goal <gd>)
+
+<p-htn> ::= (<p-class>
+    [:parameters (<typed list (variable)>)]
+    <tasknetwork-def>)
+$   <p-class> ::= :htn
+
+$   <name> ::= [a-z,A-Z][a-z,A-Z,0-9,-,_]*
