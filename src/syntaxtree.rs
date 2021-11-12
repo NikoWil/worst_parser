@@ -1,4 +1,14 @@
 /**
+ * <types> ::= <typed list (name)>
+ *     | <base-type>
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum Types<'input> {
+    Subtype(TypedLists<'input, &'input str>),
+    BaseType(BaseType<'input>),
+}
+
+/**
  * <base-type> ::= <name>
  */
 #[derive(Debug, PartialEq, Eq)]
@@ -13,7 +23,7 @@ pub struct BaseType<'input> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Predicate<'input> {
     pub predicate: PredicateId<'input>,
-    pub parameters: TypedLists<'input, VariableId<'input>>
+    pub parameters: TypedLists<'input, VariableId<'input>>,
 }
 
 /**
@@ -44,7 +54,7 @@ pub struct TypedLists<'input, O> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct TypedList<'input, O> {
     pub elems: Vec<O>,
-    pub elem_type: Type<'input>
+    pub elem_type: Type<'input>,
 }
 
 /**
@@ -55,4 +65,20 @@ pub struct TypedList<'input, O> {
 pub enum Type<'input> {
     Single(&'input str),
     List(Vec<&'input str>),
+}
+
+/**
+ * <subtask-id> ::= <name>
+ */
+pub struct SubtaskId<'input> {
+    pub name: &'input str,
+}
+
+/**
+ * <ordering-def> ::=
+ *     (<subtask-id> "<" <subtask-id>)
+ */
+pub struct OrderingDef<'input> {
+    pub first: SubtaskId<'input>,
+    pub second: SubtaskId<'input>,
 }

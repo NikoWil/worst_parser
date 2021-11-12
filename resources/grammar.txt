@@ -10,12 +10,12 @@
 <require-def> ::=
     (:requirements <require-key>+)
 <require-key> ::= ...
-<types-def> ::= (:types <types>+)
-<types> ::= <typed list (name)>
-    | <base-type>
+$   <types-def> ::= (:types <types>+)
+$   <types> ::= <typed list (name)>
+$       | <base-type>
 $   <base-type> ::= <name>
-<constants-def> ::=
-    (:constants <typed list (name)>)
+$   <constants-def> ::=
+$       (:constants <typed list (name)>)
 $   <predicates-def> ::=
 $       (:predicates <atomic-formula-skeleton>+)
 $   <atomic-formula-skeleton> ::=
@@ -44,7 +44,7 @@ $   <type> ::= <primitive-type>
     | (and <subtask-def>+)
 <subtask-def> ::= (<task-symbol> <term>*)
     | (<subtask-id> (<task-symbol> <term>*))
-<subtask-id> ::= <name>
+$    <subtask-id> ::= <name>
 
 <ordering-defs> ::= () | <ordering-def>
     | (and <ordering-def>+)

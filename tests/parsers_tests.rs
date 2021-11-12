@@ -2,7 +2,7 @@ use nom::{
     error::{ErrorKind, VerboseError, VerboseErrorKind},
     Err as NomErr,
 };
-use worst_parser::{parsers::{Res, parse_atomic_formula_skeleton, parse_constants_def, parse_name, parse_p_class, parse_predicate, parse_predicates_def, parse_variable}, syntaxtree::{Predicate, PredicateId, TypedList}};
+use worst_parser::{parsers::{Res, parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_name, parse_p_class, parse_predicates_def, parse_types, parse_types_def, parse_variable}, syntaxtree::{Predicate, PredicateId, TypedList, Types}};
 use worst_parser::{
     parsers::{parse_type, parse_typed_lists, whitespace},
     syntaxtree::{Type, TypedLists, VariableId},
@@ -19,6 +19,57 @@ fn test_whitespace() {
     assert_eq!(whitespace(" a "), DefRes::Ok(("a ", " ")));
 
     assert_eq!(whitespace("a "), DefRes::Ok(("a ", "")));
+}
+
+/**
+ * <types-def> ::= (:types <types>+)
+ */
+#[test]
+fn test_types_def() {
+    let types_1 = "types a b c - foo d e f - bar foo bar - object";
+    let types_2 = "object";
+    let rest = " asdf qwer tyui ghjk";
+
+    let types_def = {
+        let mut types_def = "(:types ".to_owned();
+        types_def.push_str(types_1);
+        types_def.push(' ');
+        types_def.push_str(types_2);
+        types_def.push(')');
+        types_def.push_str(rest);
+        types_def
+    };
+
+    let (_, types_1_ast) = parse_types(types_1).unwrap();
+    let (_, types_2_ast) = parse_types(types_2).unwrap();
+
+    assert_eq!(
+        parse_types_def(types_def.as_str()),
+        Res::Ok((rest, vec![types_1_ast, types_2_ast]))
+    );
+}
+
+/**
+ * <types> ::= <typed list (name)>
+ *     | <base-type>
+ */
+#[test]
+fn test_types() {
+    let typed_list = "a b c - foo d e - bar";
+    let base_type = "asdf ghjk qwer tyui";
+
+    let (_, typed_list_ast) = parse_typed_lists(parse_name)(typed_list).unwrap();
+    let (_, base_type_ast) = parse_base_type(base_type).unwrap();
+
+    assert_eq!(
+        parse_types(typed_list),
+        Res::Ok(("", Types::Subtype(typed_list_ast)))
+    );
+
+    assert_eq!(
+        parse_types(base_type),
+        Res::Ok((" ghjk qwer tyui", Types::BaseType(base_type_ast)))
+    );
 }
 
 /**
@@ -116,16 +167,14 @@ fn test_atomic_formula_skeleton() {
                     name: "predicate_1"
                 },
                 parameters: TypedLists {
-                    elems: vec![
-                        TypedList {
-                            elem_type: Type::List(vec!["object", "box", "tree"]),
-                            elems: vec![
-                                VariableId { name: Some("foo") },
-                                VariableId { name: Some("bar") },
-                                VariableId { name: Some("baz") }
-                            ]
-                        },
-                    ]
+                    elems: vec![TypedList {
+                        elem_type: Type::List(vec!["object", "box", "tree"]),
+                        elems: vec![
+                            VariableId { name: Some("foo") },
+                            VariableId { name: Some("bar") },
+                            VariableId { name: Some("baz") }
+                        ]
+                    },]
                 }
             }
         ))
