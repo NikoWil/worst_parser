@@ -2,7 +2,14 @@ use nom::{
     error::{ErrorKind, VerboseError, VerboseErrorKind},
     Err as NomErr,
 };
-use worst_parser::{parsers::{Res, parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_name, parse_p_class, parse_predicates_def, parse_types, parse_types_def, parse_variable}, syntaxtree::{Predicate, PredicateId, TypedList, Types}};
+use worst_parser::{
+    parsers::{
+        parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_name,
+        parse_ordering_def, parse_ordering_defs, parse_p_class, parse_predicates_def, parse_types,
+        parse_types_def, parse_variable, Res,
+    },
+    syntaxtree::{OrderingDef, Predicate, PredicateId, SubtaskId, TypedList, Types},
+};
 use worst_parser::{
     parsers::{parse_type, parse_typed_lists, whitespace},
     syntaxtree::{Type, TypedLists, VariableId},
@@ -268,6 +275,74 @@ fn test_type() {
     assert_eq!(
         parse_type("(either type-1 type-2 type-3)"),
         Res::Ok(("", Type::List(vec!["type-1", "type-2", "type-3"])))
+    );
+}
+
+/**
+ * <ordering-defs> ::= () | <ordering-def>
+ *     | (and <ordering-def>+)
+ */
+#[test]
+fn test_ordering_defs() {
+    let def_1 = "(t1 < t2)";
+    let def_2 = "(t2 < t3)";
+    let def_3 = "(t3 < t1)";
+
+    let rest = "asdlfkj ()(*???";
+
+    let (_, def_1_ast) = parse_ordering_def(def_1).unwrap();
+    let (_, def_2_ast) = parse_ordering_def(def_2).unwrap();
+    let (_, def_3_ast) = parse_ordering_def(def_3).unwrap();
+
+    let defs = {
+        let mut defs = "(\tand\n".to_owned();
+        defs.push_str(def_1);
+        defs.push('\r');
+        defs.push_str(def_2);
+        defs.push(' ');
+        defs.push_str(def_3);
+        defs.push_str(" )");
+        defs.push_str(rest);
+        defs
+    };
+
+    assert_eq!(
+        parse_ordering_defs(defs.as_str()),
+        Res::Ok((rest, vec![def_1_ast, def_2_ast, def_3_ast]))
+    );
+
+    let (_, def_1_ast) = parse_ordering_def(def_1).unwrap();
+    assert_eq!(parse_ordering_defs(def_1), Res::Ok(("", vec![def_1_ast])));
+
+    assert_eq!(parse_ordering_defs("() asdf"), Res::Ok((" asdf", vec![])));
+}
+
+/**
+ * <ordering-def> ::=
+ *     (<subtask-id> "<" <subtask-id>)
+ */
+#[test]
+fn test_ordering_def() {
+    assert_eq!(
+        parse_ordering_def("(t1 < t2)"),
+        Res::Ok((
+            "",
+            OrderingDef {
+                first: SubtaskId { name: "t1" },
+                second: SubtaskId { name: "t2" }
+            }
+        ))
+    );
+
+    assert_eq!(
+        parse_ordering_def("(\nt1\t< t2\r   )"),
+        Res::Ok((
+            "",
+            OrderingDef {
+                first: SubtaskId { name: "t1" },
+                second: SubtaskId { name: "t2" }
+            }
+        ))
     );
 }
 

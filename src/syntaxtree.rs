@@ -70,7 +70,8 @@ pub enum Type<'input> {
 /**
  * <subtask-id> ::= <name>
  */
-pub struct SubtaskId<'input> {
+#[derive(Debug, PartialEq, Eq)]
+ pub struct SubtaskId<'input> {
     pub name: &'input str,
 }
 
@@ -78,7 +79,29 @@ pub struct SubtaskId<'input> {
  * <ordering-def> ::=
  *     (<subtask-id> "<" <subtask-id>)
  */
+#[derive(Debug, PartialEq, Eq)]
 pub struct OrderingDef<'input> {
     pub first: SubtaskId<'input>,
     pub second: SubtaskId<'input>,
+}
+
+/**
+ * <constraint-def> ::= ()
+ *     | (not (= <term> <term>))
+ *     | (= <term> <term>)
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum ConstraintDef<'input> {
+    Eq(Term<'input>, Term<'input>),
+    NEq(Term<'input>, Term<'input>),
+}
+
+/**
+ * <term> ::= <name>
+ * <term> ::= <variable>
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum Term<'input> {
+    Name(&'input str),
+    Var(VariableId<'input>)
 }

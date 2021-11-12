@@ -10,8 +10,8 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    BaseType, OrderingDef, Predicate, PredicateId, SubtaskId, Type, TypedList, TypedLists, Types,
-    VariableId,
+    BaseType, OrderingDef, Predicate, PredicateId, SubtaskId, Term, Type, TypedList, TypedLists,
+    Types, VariableId,
 };
 
 // TODO: add whitespace between '(' and labels like ':predicates' or not?
@@ -205,6 +205,28 @@ pub fn parse_subtask_id(input: &str) -> IRes<SubtaskId> {
 }
 
 /**
+ * <ordering-defs> ::= () | <ordering-def>
+ *     | (and <ordering-def>+)
+ */
+pub fn parse_ordering_defs(input: &str) -> IRes<Vec<OrderingDef>> {
+    let def_empty = tag("()");
+    let def_single = parse_ordering_def;
+    let mut def_list = delimited(
+        tuple((tag("("), whitespace, tag("and"))),
+        many1(preceded(whitespace, parse_ordering_def)),
+        pair(whitespace, tag(")")),
+    );
+
+    if let IRes::Ok((next_input, _)) = def_empty(input) {
+        IRes::Ok((next_input, vec![]))
+    } else if let IRes::Ok((next_input, def)) = def_single(input) {
+        IRes::Ok((next_input, vec![def]))
+    } else {
+        def_list(input)
+    }
+}
+
+/**
  * <ordering-def> ::=
  *     (<subtask-id> "<" <subtask-id>)
  */
@@ -217,10 +239,22 @@ pub fn parse_ordering_def(input: &str) -> IRes<OrderingDef> {
                 terminated(parse_subtask_id, tuple((whitespace, tag("<"), whitespace))),
                 parse_subtask_id,
             ),
-            pair(tag(")"), whitespace),
+            pair(whitespace, tag(")")),
         ),
     )(input)
     .map(|(next_input, (first, second))| (next_input, OrderingDef { first, second }))
+}
+
+/**
+ * <term> ::= <name>
+ * <term> ::= <variable>
+ */
+pub fn parse_term(input: &str) -> IRes<Term> {
+    if let Ok((next_input, name)) = parse_name(input) {
+        IRes::Ok((next_input, Term::Name(name)))
+    } else {
+        parse_variable(input).map(|(next_input, var)| (next_input, Term::Var(var)))
+    }
 }
 
 pub fn parse_p_class(input: &str) -> IRes<&str> {

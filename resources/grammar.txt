@@ -46,10 +46,10 @@ $   <type> ::= <primitive-type>
     | (<subtask-id> (<task-symbol> <term>*))
 $    <subtask-id> ::= <name>
 
-<ordering-defs> ::= () | <ordering-def>
-    | (and <ordering-def>+)
-<ordering-def> ::=
-    (<subtask-id> "<" <subtask-id>)
+$   <ordering-defs> ::= () | <ordering-def>
+$       | (and <ordering-def>+)
+$   <ordering-def> ::=
+$       (<subtask-id> "<" <subtask-id>)
 
 <constraint-defs> ::= () | <constraint-def>
     | (and <constraint-def>+)
@@ -110,3 +110,5 @@ $    <subtask-id> ::= <name>
 $   <p-class> ::= :htn
 
 $   <name> ::= [a-z,A-Z][a-z,A-Z,0-9,-,_]*
+
+<task-symbol> = ???
