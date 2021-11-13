@@ -4,11 +4,13 @@ use nom::{
 };
 use worst_parser::{
     parsers::{
-        parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_name,
-        parse_ordering_def, parse_ordering_defs, parse_p_class, parse_predicates_def, parse_types,
-        parse_types_def, parse_variable, Res,
+        parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_constraint_def,
+        parse_name, parse_ordering_def, parse_ordering_defs, parse_p_class, parse_predicates_def,
+        parse_term, parse_types, parse_types_def, parse_variable, Res,
     },
-    syntaxtree::{OrderingDef, Predicate, PredicateId, SubtaskId, TypedList, Types},
+    syntaxtree::{
+        ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term, TypedList, Types,
+    },
 };
 use worst_parser::{
     parsers::{parse_type, parse_typed_lists, whitespace},
@@ -343,6 +345,48 @@ fn test_ordering_def() {
                 second: SubtaskId { name: "t2" }
             }
         ))
+    );
+}
+
+/**
+ * <constraint-def> ::= ()
+ *     | (not (= <term> <term>))
+ *     | (= <term> <term>)
+ */
+#[test]
+fn test_constraint_def() {
+    let empty = "( )rest";
+    let neq = "( not ( = t1 t2 ) )rest";
+    let eq = "( = t1 t2 )rest";
+
+    assert_eq!(parse_constraint_def(empty), Res::Ok(("rest", None)));
+
+    assert_eq!(
+        parse_constraint_def(neq),
+        Res::Ok((
+            "rest",
+            Some(ConstraintDef::NEq(Term::Name("t1"), Term::Name("t2")))
+        ))
+    );
+
+    assert_eq!(
+        parse_constraint_def(eq),
+        Res::Ok((
+            "rest",
+            Some(ConstraintDef::Eq(Term::Name("t1"), Term::Name("t2")))
+        ))
+    );
+}
+
+/**
+ * <term> ::= <name>
+ * <term> ::= <variable>
+ */
+#[test]
+fn test_term() {
+    assert_eq!(
+        parse_term("term_1 rest"),
+        Res::Ok((" rest", Term::Name("term_1")))
     );
 }
 

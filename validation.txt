@@ -3,7 +3,9 @@ Questions:
 - how is <task-symbol> defined?
 - what are valid instances of <require-key>?
 - how does <variable> ::= ?<name> work? Why is it like this?
+- will a term ever be a variable, considering we always hit the rule for <name> first?
 
+Validations:
 - all tasks in ordering-def are actually defined in the method
 - the ordering-defs do not form a cycle
 - optional features are only used when the corresponding require-key is set

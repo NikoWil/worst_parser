@@ -10,8 +10,8 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    BaseType, OrderingDef, Predicate, PredicateId, SubtaskId, Term, Type, TypedList, TypedLists,
-    Types, VariableId,
+    BaseType, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term, Type, TypedList,
+    TypedLists, Types, VariableId,
 };
 
 // TODO: add whitespace between '(' and labels like ':predicates' or not?
@@ -243,6 +243,63 @@ pub fn parse_ordering_def(input: &str) -> IRes<OrderingDef> {
         ),
     )(input)
     .map(|(next_input, (first, second))| (next_input, OrderingDef { first, second }))
+}
+
+/**
+ * <constraint-defs> ::= () | <constraint-def>
+ *     | (and <constraint-def>+)
+ */
+pub fn parse_constraint_defs(input: &str) -> IRes<Vec<ConstraintDef>> {
+    let mut list = delimited(
+        tuple((tag("("), whitespace, tag("and"), whitespace)),
+        many1(pair(parse_constraint_def, whitespace)),
+        tag(")"),
+    );
+
+    if let Ok((next_input, _)) = tuple((tag("("), whitespace, tag(")")))(input) {
+        Ok((next_input, vec![]))
+    } else if let Ok((next_input, def)) = parse_constraint_def(input) {
+        if let Some(def) = def {
+            Ok((next_input, vec![def]))
+        } else {
+            Ok((next_input, vec![]))
+        }
+    } else {
+        list(input).map(|(next_input, defs)| (next_input, defs.into_iter().map(|(def, _)| def).flatten().collect()))
+    }
+}
+
+/**
+ * <constraint-def> ::= ()
+ *     | (not (= <term> <term>))
+ *     | (= <term> <term>)
+ */
+pub fn parse_constraint_def(input: &str) -> IRes<Option<ConstraintDef>> {
+    let mut eq = delimited(
+        tuple((tag("("), whitespace, tag("="), whitespace)),
+        pair(terminated(parse_term, whitespace), parse_term),
+        pair(whitespace, tag(")")),
+    );
+    let mut neq = {
+        let eq = delimited(
+            tuple((tag("("), whitespace, tag("="), whitespace)),
+            pair(terminated(parse_term, whitespace), parse_term),
+            pair(whitespace, tag(")")),
+        );
+        delimited(
+            tuple((tag("("), whitespace, tag("not"), whitespace)),
+            eq,
+            pair(whitespace, tag(")")),
+        )
+    };
+
+    if let Ok((next_input, (t1, t2))) = neq(input) {
+        Ok((next_input, Some(ConstraintDef::NEq(t1, t2))))
+    } else if let Ok((next_input, (t1, t2))) = eq(input) {
+        Ok((next_input, Some(ConstraintDef::Eq(t1, t2))))
+    } else {
+        tuple((tag("("), whitespace, tag(")")))(input).map(|(next_input, _)| (next_input, None))
+    }
 }
 
 /**
