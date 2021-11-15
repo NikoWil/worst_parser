@@ -10,8 +10,8 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    BaseType, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term, Type, TypedList,
-    TypedLists, Types, VariableId,
+    AtomicFormula, BaseType, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term,
+    Type, TypedList, TypedLists, Types, VariableId,
 };
 
 // TODO: add whitespace between '(' and labels like ':predicates' or not?
@@ -141,12 +141,9 @@ pub fn parse_variable(input: &str) -> IRes<VariableId> {
  * <typed list (x)> ::= x+ - <type>
  *     [<typed list (x)>]
  */
-pub fn parse_typed_lists<'input, F, O>(
-    f: F,
-) -> impl FnMut(&'input str) -> IRes<TypedLists<'input, O>>
+pub fn parse_typed_lists<'input, F, O>(f: F) -> impl FnMut(&'input str) -> IRes<TypedLists<O>>
 where
-    F: FnMut(&'input str) -> IRes<'input, O> + 'input,
-    O: 'input,
+    F: FnMut(&'input str) -> IRes<O>,
 {
     let typed_list = pair(
         terminated(many1(terminated(f, whitespace)), pair(tag("-"), whitespace)),
@@ -265,7 +262,12 @@ pub fn parse_constraint_defs(input: &str) -> IRes<Vec<ConstraintDef>> {
             Ok((next_input, vec![]))
         }
     } else {
-        list(input).map(|(next_input, defs)| (next_input, defs.into_iter().map(|(def, _)| def).flatten().collect()))
+        list(input).map(|(next_input, defs)| {
+            (
+                next_input,
+                defs.into_iter().map(|(def, _)| def).flatten().collect(),
+            )
+        })
     }
 }
 
@@ -299,6 +301,34 @@ pub fn parse_constraint_def(input: &str) -> IRes<Option<ConstraintDef>> {
         Ok((next_input, Some(ConstraintDef::Eq(t1, t2))))
     } else {
         tuple((tag("("), whitespace, tag(")")))(input).map(|(next_input, _)| (next_input, None))
+    }
+}
+
+/**
+ * pub fn parse_typed_lists<'input, F, O>(
+    f: F,
+) -> impl FnMut(&'input str) -> IRes<TypedLists<'input, O>>
+where
+    F: FnMut(&'input str) -> IRes<'input, O> + 'input,
+    O: 'input,
+ */
+
+/**
+ * <atomic formula(t)> ::= (<predicate> t*)
+ */
+pub fn parse_atomic_formula<'input, F, O>(f: F) -> impl FnMut(&'input str) -> IRes<AtomicFormula<O>>
+where
+    F: FnMut(&'input str) -> IRes<O>,
+{
+    let mut formula = delimited(
+        pair(tag("("), whitespace),
+        pair(parse_predicate, many0(preceded(whitespace, f))),
+        pair(whitespace, tag(")")),
+    );
+
+    move |input: &str| {
+        formula(input)
+            .map(|(next_input, (pred, elems))| (next_input, AtomicFormula { pred, elems }))
     }
 }
 

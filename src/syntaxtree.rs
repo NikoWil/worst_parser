@@ -97,6 +97,15 @@ pub enum ConstraintDef<'input> {
 }
 
 /**
+ * <atomic formula(t)> ::= (<predicate> t*)
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub struct AtomicFormula<'input, T> {
+    pub pred: PredicateId<'input>,
+    pub elems: Vec<T>,
+}
+
+/**
  * <term> ::= <name>
  * <term> ::= <variable>
  */
