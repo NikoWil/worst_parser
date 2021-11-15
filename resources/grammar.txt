@@ -75,7 +75,7 @@ $       | (= <term> <term>)
 <gd> ::= (= <term> <term>)
 <literal (t)> ::= <atomic formula(t)>
 <literal (t)> ::= (not <atomic formula(t)>)
-<atomic formula(t)> ::= (<predicate> t*)
+$   <atomic formula(t)> ::= (<predicate> t*)
 $   <term> ::= <name>
 $   <term> ::= <variable>
 <effect> ::= ()
@@ -96,7 +96,7 @@ $   <term> ::= <variable>
     [<require-def>]
     [<p-object-declaration>]
     [<p-htn>]
-<p-init>
+    <p-init>
     [<p-goal>])
 <p-object-declaration> ::=
     (:objects <typed list (name)>)

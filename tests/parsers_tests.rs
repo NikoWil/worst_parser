@@ -4,12 +4,13 @@ use nom::{
 };
 use worst_parser::{
     parsers::{
-        parse_atomic_formula_skeleton, parse_base_type, parse_constants_def, parse_constraint_def,
-        parse_name, parse_ordering_def, parse_ordering_defs, parse_p_class, parse_predicates_def,
-        parse_term, parse_types, parse_types_def, parse_variable, Res,
+        parse_atomic_formula, parse_atomic_formula_skeleton, parse_base_type, parse_constants_def,
+        parse_constraint_def, parse_name, parse_ordering_def, parse_ordering_defs, parse_p_class,
+        parse_predicates_def, parse_term, parse_types, parse_types_def, parse_variable, Res,
     },
     syntaxtree::{
-        ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term, TypedList, Types,
+        AtomicFormula, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term,
+        TypedList, Types,
     },
 };
 use worst_parser::{
@@ -374,6 +375,23 @@ fn test_constraint_def() {
         Res::Ok((
             "rest",
             Some(ConstraintDef::Eq(Term::Name("t1"), Term::Name("t2")))
+        ))
+    );
+}
+
+/**
+ * <atomic formula(t)> ::= (<predicate> t*)
+ */
+#[test]
+fn test_atomic_formula() {
+    assert_eq!(
+        parse_atomic_formula(parse_term)("(pred_01 var_01 var_02)rest"),
+        Res::Ok((
+            "rest",
+            AtomicFormula {
+                pred: PredicateId { name: "pred_01" },
+                elems: vec![Term::Name("var_01"), Term::Name("var_02")]
+            }
         ))
     );
 }
