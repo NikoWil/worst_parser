@@ -61,18 +61,18 @@ $       | (= <term> <term>)
     [:precondition <gd>]
     [:effects <effect>])
 
-<gd> ::= ()
-<gd> ::= <atomic formula (term)>
-<gd> ::=:negative-preconditions <literal (term)>
-<gd> ::= (and <gd>*)
-<gd> ::=:disjunctive-preconditions (or <gd>*)
-<gd> ::=:disjunctive-preconditions (not <gd>)
-<gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
-<gd> ::=:existential-preconditions
-    (exists (<typed list (variable)>*) <gd>)
-<gd> ::=:universal-preconditions
-    (forall (<typed list (variable)>*) <gd>)
-<gd> ::= (= <term> <term>)
+$   <gd> ::= ()
+$   <gd> ::= <atomic formula (term)>
+$   <gd> ::=:negative-preconditions <literal (term)>
+$   <gd> ::= (and <gd>*)
+$   <gd> ::=:disjunctive-preconditions (or <gd>*)
+$   <gd> ::=:disjunctive-preconditions (not <gd>)
+$   <gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+$   <gd> ::=:existential-preconditions
+$       (exists (<typed list (variable)>*) <gd>)
+$   <gd> ::=:universal-preconditions
+$       (forall (<typed list (variable)>*) <gd>)
+$   <gd> ::= (= <term> <term>)
 $   <literal (t)> ::= <atomic formula(t)>
 $   <literal (t)> ::= (not <atomic formula(t)>)
 $   <atomic formula(t)> ::= (<predicate> t*)

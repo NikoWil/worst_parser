@@ -379,6 +379,25 @@ fn test_constraint_def() {
         ))
     );
 }
+/**
+ * <gd> ::= ()
+ * <gd> ::= <atomic formula (term)>
+ * <gd> ::=:negative-preconditions <literal (term)>
+ * <gd> ::= (and <gd>*)
+ * <gd> ::=:disjunctive-preconditions (or <gd>*)
+ * <gd> ::=:disjunctive-preconditions (not <gd>)
+ * <gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+ * <gd> ::=:existential-preconditions
+ *     (exists (<typed list (variable)>*) <gd>)
+ * <gd> ::=:universal-preconditions
+ *     (forall (<typed list (variable)>*) <gd>)
+ * <gd> ::= (= <term> <term>)
+ */
+#[test]
+fn test_gd() {
+    // TODO: implement!
+    todo!()
+}
 
 /**
  * <literal (t)> ::= <atomic formula(t)>

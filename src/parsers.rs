@@ -319,20 +319,6 @@ pub fn parse_constraint_def(input: &str) -> IRes<Option<ConstraintDef>> {
  * <gd> ::= (= <term> <term>)
  */
 pub fn parse_gd<'input>(input: &'input str) -> IRes<GoalDefinition> {
-    /*Literal(Literal<'input, Term<'input>>),
-    And(Vec<GoalDefinition<'input>>),
-    Or(Vec<GoalDefinition<'input>>),
-    Not(Box<GoalDefinition<'input>>),
-    Imply(Box<GoalDefinition<'input>>, Box<GoalDefinition<'input>>),
-    Exists(
-        Vec<TypedLists<'input, VariableId<'input>>>,
-        Box<GoalDefinition<'input>>,
-    ),
-    ForAll(
-        Vec<TypedLists<'input, VariableId<'input>>>,
-        Box<GoalDefinition<'input>>,
-    ),
-    Eq(Term<'input>, Term<'input>),*/
     let empty = |input: &'input str| {
         tuple((tag("("), whitespace, tag(")")))(input)
             .map(|(next_input, _)| (next_input, GoalDefinition::Empty))
@@ -341,42 +327,108 @@ pub fn parse_gd<'input>(input: &'input str) -> IRes<GoalDefinition> {
         parse_atomic_formula(parse_term)(input)
             .map(|(next_input, formula)| (next_input, GoalDefinition::Formula(formula)))
     };
-    let literal = |input: &str| {};
-
-    panic!();
-}
-
-/* fn gd_literal(input: &str) -> IRes<GoalDefinition> {
-    parse_literal(input, &parse_term)
+    let literal = |input: &'input str| {
+        parse_literal(parse_term)(input)
             .map(|(next_input, literal)| (next_input, GoalDefinition::Literal(literal)))
-}
+    };
+    let and = |input: &'input str| {
+        delimited(
+            tuple((tag("("), whitespace, tag("and"), whitespace)),
+            many0(terminated(parse_gd, whitespace)),
+            tag(")"),
+        )(input)
+        .map(|(next_input, gds)| (next_input, GoalDefinition::And(gds)))
+    };
+    let or = |input: &'input str| {
+        delimited(
+            tuple((tag("("), whitespace, tag("or"), whitespace)),
+            many0(terminated(parse_gd, whitespace)),
+            tag(")"),
+        )(input)
+        .map(|(next_input, gds)| (next_input, GoalDefinition::Or(gds)))
+    };
+    let not = |input: &'input str| {
+        delimited(
+            tuple((tag("("), whitespace, tag("not"), whitespace)),
+            parse_gd,
+            pair(whitespace, tag(")")),
+        )(input)
+        .map(|(next_input, gd)| (next_input, GoalDefinition::Not(Box::new(gd))))
+    };
+    let imply = |input: &'input str| {
+        delimited(
+            tuple((tag("("), whitespace, tag("imply"), whitespace)),
+            pair(terminated(parse_gd, whitespace), parse_gd),
+            tag(")"),
+        )(input)
+        .map(|(next_input, (gd_1, gd_2))| {
+            (
+                next_input,
+                GoalDefinition::Imply(Box::new(gd_1), Box::new(gd_2)),
+            )
+        })
+    };
+    let exists = |input: &'input str| {
+        delimited(
+            tuple((
+                tag("("),
+                whitespace,
+                tag("exists"),
+                whitespace,
+                tag("("),
+                whitespace,
+            )),
+            pair(
+                many0(terminated(parse_typed_lists(parse_variable), whitespace)),
+                preceded(pair(tag(")"), whitespace), parse_gd),
+            ),
+            pair(whitespace, tag(")")),
+        )(input)
+        .map(|(next_input, (vars, gd))| (next_input, GoalDefinition::Exists(vars, Box::new(gd))))
+    };
+    let forall = |input: &'input str| {
+        delimited(
+            tuple((
+                tag("("),
+                whitespace,
+                tag("forall"),
+                whitespace,
+                tag("("),
+                whitespace,
+            )),
+            pair(
+                many0(terminated(parse_typed_lists(parse_variable), whitespace)),
+                preceded(pair(tag(")"), whitespace), parse_gd),
+            ),
+            pair(whitespace, tag(")")),
+        )(input)
+        .map(|(next_input, (vars, gd))| (next_input, GoalDefinition::ForAll(vars, Box::new(gd))))
+    };
+    let eq = |input: &'input str| {
+        delimited(
+            tuple((tag("("), whitespace, tag("="), whitespace)),
+            pair(parse_term, preceded(whitespace, parse_term)),
+            pair(whitespace, tag(")")),
+        )(input)
+        .map(|(next_input, (t1, t2))| (next_input, GoalDefinition::Eq(t1, t2)))
+    };
 
-/**
- * <literal (t)> ::= <atomic formula(t)>
- * <literal (t)> ::= (not <atomic formula(t)>)
- */
-//TODO: make this interface nicer, like parse_typed_lists and parse_atomic_formula
-pub fn parse_literal<'input, O>(
-    input: &'input str,
-    f: &'static dyn Fn(&str) -> Res<&str, O>,
-) -> IRes<'input, Literal<'input, O>>
-where
-{
-    alt((
-        |input: &'input str| {
-            parse_atomic_formula(f)(input)
-                .map(|(next_input, formula)| (next_input, Literal::Pos(formula)))
-        },
-        |input: &'input str| {
-            delimited(
-                tuple((tag("("), whitespace, tag("not"), whitespace)),
-                parse_atomic_formula(f),
-                pair(whitespace, tag(")")),
-            )(input)
-            .map(|(next_input, formula)| (next_input, Literal::Pos(formula)))
-        },
-    ))(input)
-} */
+    context(
+        "goal definition",
+        alt((
+            context("gd empty", empty),
+            context("gd formula", formula),
+            context("gd literal", literal),
+            context("gd and", and),
+            context("gd or", or),
+            context("gd not", not),
+            context("gd imply", imply),
+            context("gd exists", exists),
+            context("gd forall", forall),
+            context("gd eq", eq),
+        )),
+    )(input)
+}
 
 /**
  * <literal (t)> ::= <atomic formula(t)>
