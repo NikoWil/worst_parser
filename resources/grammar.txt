@@ -73,8 +73,8 @@ $       | (= <term> <term>)
 <gd> ::=:universal-preconditions
     (forall (<typed list (variable)>*) <gd>)
 <gd> ::= (= <term> <term>)
-<literal (t)> ::= <atomic formula(t)>
-<literal (t)> ::= (not <atomic formula(t)>)
+$   <literal (t)> ::= <atomic formula(t)>
+$   <literal (t)> ::= (not <atomic formula(t)>)
 $   <atomic formula(t)> ::= (<predicate> t*)
 $   <term> ::= <name>
 $   <term> ::= <variable>

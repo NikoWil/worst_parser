@@ -5,12 +5,13 @@ use nom::{
 use worst_parser::{
     parsers::{
         parse_atomic_formula, parse_atomic_formula_skeleton, parse_base_type, parse_constants_def,
-        parse_constraint_def, parse_name, parse_ordering_def, parse_ordering_defs, parse_p_class,
-        parse_predicates_def, parse_term, parse_types, parse_types_def, parse_variable, Res,
+        parse_constraint_def, parse_literal, parse_name, parse_ordering_def, parse_ordering_defs,
+        parse_p_class, parse_predicates_def, parse_term, parse_types, parse_types_def,
+        parse_variable, Res,
     },
     syntaxtree::{
-        AtomicFormula, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term,
-        TypedList, Types,
+        AtomicFormula, ConstraintDef, Literal, OrderingDef, Predicate, PredicateId, SubtaskId,
+        Term, TypedList, Types,
     },
 };
 use worst_parser::{
@@ -376,6 +377,40 @@ fn test_constraint_def() {
             "rest",
             Some(ConstraintDef::Eq(Term::Name("t1"), Term::Name("t2")))
         ))
+    );
+}
+
+/**
+ * <literal (t)> ::= <atomic formula(t)>
+ * <literal (t)> ::= (not <atomic formula(t)>)
+ */
+#[test]
+fn test_literal() {
+    let formula = "(pred_01 var_01 var_02)";
+    let (_, formula_ast) = parse_atomic_formula(parse_term)(formula).unwrap();
+
+    let eq = {
+        let mut eq = formula.to_owned();
+        eq.push_str(" rest");
+        eq
+    };
+    let neq = {
+        let mut neq = "( not ".to_owned();
+        neq.push_str(formula);
+        neq.push_str(" )");
+        neq.push_str(" rest");
+        neq
+    };
+
+    assert_eq!(
+        parse_literal(parse_term)(&eq),
+        Res::Ok((" rest", Literal::Pos(formula_ast)))
+    );
+
+    let (_, formula_ast) = parse_atomic_formula(parse_term)(formula).unwrap();
+    assert_eq!(
+        parse_literal(parse_term)(&neq),
+        Res::Ok((" rest", Literal::Neg(formula_ast)))
     );
 }
 

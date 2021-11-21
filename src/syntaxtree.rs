@@ -71,7 +71,7 @@ pub enum Type<'input> {
  * <subtask-id> ::= <name>
  */
 #[derive(Debug, PartialEq, Eq)]
- pub struct SubtaskId<'input> {
+pub struct SubtaskId<'input> {
     pub name: &'input str,
 }
 
@@ -97,6 +97,50 @@ pub enum ConstraintDef<'input> {
 }
 
 /**
+ * <gd> ::= ()
+ * <gd> ::= <atomic formula (term)>
+ * <gd> ::=:negative-preconditions <literal (term)>
+ * <gd> ::= (and <gd>*)
+ * <gd> ::=:disjunctive-preconditions (or <gd>*)
+ * <gd> ::=:disjunctive-preconditions (not <gd>)
+ * <gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+ * <gd> ::=:existential-preconditions
+ *     (exists (<typed list (variable)>*) <gd>)
+ * <gd> ::=:universal-preconditions
+ *     (forall (<typed list (variable)>*) <gd>)
+ * <gd> ::= (= <term> <term>)
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum GoalDefinition<'input> {
+    Empty,
+    Formula(AtomicFormula<'input, Term<'input>>),
+    Literal(Literal<'input, Term<'input>>),
+    And(Vec<GoalDefinition<'input>>),
+    Or(Vec<GoalDefinition<'input>>),
+    Not(Box<GoalDefinition<'input>>),
+    Imply(Box<GoalDefinition<'input>>, Box<GoalDefinition<'input>>),
+    Exists(
+        Vec<TypedLists<'input, VariableId<'input>>>,
+        Box<GoalDefinition<'input>>,
+    ),
+    ForAll(
+        Vec<TypedLists<'input, VariableId<'input>>>,
+        Box<GoalDefinition<'input>>,
+    ),
+    Eq(Term<'input>, Term<'input>),
+}
+
+/**
+ * <literal (t)> ::= <atomic formula(t)>
+ * <literal (t)> ::= (not <atomic formula(t)>)
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum Literal<'input, T> {
+    Pos(AtomicFormula<'input, T>),
+    Neg(AtomicFormula<'input, T>),
+}
+
+/**
  * <atomic formula(t)> ::= (<predicate> t*)
  */
 #[derive(Debug, PartialEq, Eq)]
@@ -112,5 +156,5 @@ pub struct AtomicFormula<'input, T> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Term<'input> {
     Name(&'input str),
-    Var(VariableId<'input>)
+    Var(VariableId<'input>),
 }

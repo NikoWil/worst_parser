@@ -10,8 +10,8 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    AtomicFormula, BaseType, ConstraintDef, OrderingDef, Predicate, PredicateId, SubtaskId, Term,
-    Type, TypedList, TypedLists, Types, VariableId,
+    AtomicFormula, BaseType, ConstraintDef, GoalDefinition, Literal, OrderingDef, Predicate,
+    PredicateId, SubtaskId, Term, Type, TypedList, TypedLists, Types, VariableId,
 };
 
 // TODO: add whitespace between '(' and labels like ':predicates' or not?
@@ -305,13 +305,116 @@ pub fn parse_constraint_def(input: &str) -> IRes<Option<ConstraintDef>> {
 }
 
 /**
- * pub fn parse_typed_lists<'input, F, O>(
-    f: F,
-) -> impl FnMut(&'input str) -> IRes<TypedLists<'input, O>>
-where
-    F: FnMut(&'input str) -> IRes<'input, O> + 'input,
-    O: 'input,
+ * <gd> ::= ()
+ * <gd> ::= <atomic formula (term)>
+ * <gd> ::=:negative-preconditions <literal (term)>
+ * <gd> ::= (and <gd>*)
+ * <gd> ::=:disjunctive-preconditions (or <gd>*)
+ * <gd> ::=:disjunctive-preconditions (not <gd>)
+ * <gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+ * <gd> ::=:existential-preconditions
+ *     (exists (<typed list (variable)>*) <gd>)
+ * <gd> ::=:universal-preconditions
+ *     (forall (<typed list (variable)>*) <gd>)
+ * <gd> ::= (= <term> <term>)
  */
+pub fn parse_gd<'input>(input: &'input str) -> IRes<GoalDefinition> {
+    /*Literal(Literal<'input, Term<'input>>),
+    And(Vec<GoalDefinition<'input>>),
+    Or(Vec<GoalDefinition<'input>>),
+    Not(Box<GoalDefinition<'input>>),
+    Imply(Box<GoalDefinition<'input>>, Box<GoalDefinition<'input>>),
+    Exists(
+        Vec<TypedLists<'input, VariableId<'input>>>,
+        Box<GoalDefinition<'input>>,
+    ),
+    ForAll(
+        Vec<TypedLists<'input, VariableId<'input>>>,
+        Box<GoalDefinition<'input>>,
+    ),
+    Eq(Term<'input>, Term<'input>),*/
+    let empty = |input: &'input str| {
+        tuple((tag("("), whitespace, tag(")")))(input)
+            .map(|(next_input, _)| (next_input, GoalDefinition::Empty))
+    };
+    let formula = |input: &'input str| {
+        parse_atomic_formula(parse_term)(input)
+            .map(|(next_input, formula)| (next_input, GoalDefinition::Formula(formula)))
+    };
+    let literal = |input: &str| {};
+
+    panic!();
+}
+
+/* fn gd_literal(input: &str) -> IRes<GoalDefinition> {
+    parse_literal(input, &parse_term)
+            .map(|(next_input, literal)| (next_input, GoalDefinition::Literal(literal)))
+}
+
+/**
+ * <literal (t)> ::= <atomic formula(t)>
+ * <literal (t)> ::= (not <atomic formula(t)>)
+ */
+//TODO: make this interface nicer, like parse_typed_lists and parse_atomic_formula
+pub fn parse_literal<'input, O>(
+    input: &'input str,
+    f: &'static dyn Fn(&str) -> Res<&str, O>,
+) -> IRes<'input, Literal<'input, O>>
+where
+{
+    alt((
+        |input: &'input str| {
+            parse_atomic_formula(f)(input)
+                .map(|(next_input, formula)| (next_input, Literal::Pos(formula)))
+        },
+        |input: &'input str| {
+            delimited(
+                tuple((tag("("), whitespace, tag("not"), whitespace)),
+                parse_atomic_formula(f),
+                pair(whitespace, tag(")")),
+            )(input)
+            .map(|(next_input, formula)| (next_input, Literal::Pos(formula)))
+        },
+    ))(input)
+} */
+
+/**
+ * <literal (t)> ::= <atomic formula(t)>
+ * <literal (t)> ::= (not <atomic formula(t)>)
+ */
+pub fn parse_literal<'input, F, O>(f: F) -> impl FnMut(&'input str) -> IRes<Literal<O>>
+where
+    F: FnMut(&'input str) -> IRes<O>,
+{
+    let mut formula = delimited(
+        pair(tag("("), whitespace),
+        pair(parse_predicate, many0(preceded(whitespace, f))),
+        pair(whitespace, tag(")")),
+    );
+
+    move |input: &str| {
+        if let Ok((next_input, _)) = context(
+            "literal - not-prefix",
+            tuple((tag("("), whitespace, tag("not"), whitespace)),
+        )(input)
+        {
+            let res: IRes<Literal<O>> = formula(next_input).map(|(next_input, (pred, elems))| {
+                (next_input, Literal::Neg(AtomicFormula { pred, elems }))
+            });
+            match res {
+                Ok((next_input, lit)) => {
+                    context("literal - not suffix", pair(whitespace, tag(")")))(next_input)
+                        .map(|(next_input, _)| (next_input, lit))
+                }
+                Err(e) => Err(e),
+            }
+        } else {
+            formula(input).map(|(next_input, (pred, elems))| {
+                (next_input, Literal::Pos(AtomicFormula { pred, elems }))
+            })
+        }
+    }
+}
 
 /**
  * <atomic formula(t)> ::= (<predicate> t*)
