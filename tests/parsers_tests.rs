@@ -5,13 +5,13 @@ use nom::{
 use worst_parser::{
     parsers::{
         parse_atomic_formula, parse_atomic_formula_skeleton, parse_base_type, parse_constants_def,
-        parse_constraint_def, parse_literal, parse_name, parse_ordering_def, parse_ordering_defs,
-        parse_p_class, parse_predicates_def, parse_term, parse_types, parse_types_def,
-        parse_variable, Res,
+        parse_constraint_def, parse_gd, parse_literal, parse_name, parse_ordering_def,
+        parse_ordering_defs, parse_p_class, parse_predicates_def, parse_term, parse_types,
+        parse_types_def, parse_variable, Res,
     },
     syntaxtree::{
-        AtomicFormula, ConstraintDef, Literal, OrderingDef, Predicate, PredicateId, SubtaskId,
-        Term, TypedList, Types,
+        AtomicFormula, ConstraintDef, GoalDefinition, Literal, OrderingDef, Predicate, PredicateId,
+        SubtaskId, Term, TypedList, Types,
     },
 };
 use worst_parser::{
@@ -395,8 +395,181 @@ fn test_constraint_def() {
  */
 #[test]
 fn test_gd() {
-    // TODO: implement!
-    todo!()
+    let formula = "( pred_01 term_01 term_02 )";
+    let literal = "( not ( pred_02 term_03 term_04 ) )";
+    let gd_1 = literal.clone();
+    let gd_2 = formula.clone();
+    let typed_lists = "a b c - object d e - box f - thingamajig";
+    let rest = " rest";
+
+    // <gd> ::= ()
+    {
+        assert_eq!(parse_gd("( )rest"), Ok(("rest", GoalDefinition::Empty)));
+    }
+    // <gd> ::= <atomic formula (term)>
+    {
+        let (_, formula_ast) = parse_atomic_formula(parse_term)(formula).unwrap();
+        let gd_formula = {
+            let mut gd_formula = formula.to_owned();
+            gd_formula.push_str(rest);
+            gd_formula
+        };
+        assert_eq!(
+            parse_gd(&gd_formula),
+            Ok((rest, GoalDefinition::Formula(formula_ast)))
+        );
+    }
+    // <gd> ::=:negative-preconditions <literal (term)>
+    {
+        let (_, literal_ast) = parse_literal(parse_term)(literal).unwrap();
+        let gd_literal = {
+            let mut gd_literal = literal.to_owned();
+            gd_literal.push_str(rest);
+            gd_literal
+        };
+        assert_eq!(
+            parse_gd(&gd_literal),
+            Ok((rest, GoalDefinition::Literal(literal_ast)))
+        );
+    }
+    // <gd> ::= (and <gd>*)
+    {
+        let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+        let (_, gd_2_ast) = parse_gd(gd_2).unwrap();
+        let gd_and = {
+            let mut gd_and = "( and ".to_owned();
+            gd_and.push_str(gd_1);
+            gd_and.push(' ');
+            gd_and.push_str(gd_2);
+            gd_and.push_str(" )");
+            gd_and.push_str(rest);
+            gd_and
+        };
+        assert_eq!(
+            parse_gd(&gd_and),
+            Ok((rest, GoalDefinition::And(vec![gd_1_ast, gd_2_ast])))
+        );
+    }
+    // <gd> ::=:disjunctive-preconditions (or <gd>*)
+    {
+        let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+        let (_, gd_2_ast) = parse_gd(gd_2).unwrap();
+        let gd_or = {
+            let mut gd_or = "( or ".to_owned();
+            gd_or.push_str(gd_1);
+            gd_or.push(' ');
+            gd_or.push_str(gd_2);
+            gd_or.push_str(" )");
+            gd_or.push_str(rest);
+            gd_or
+        };
+        assert_eq!(
+            parse_gd(&gd_or),
+            Ok((rest, GoalDefinition::Or(vec![gd_1_ast, gd_2_ast])))
+        );
+    }
+    // <gd> ::=:disjunctive-preconditions (not <gd>)
+    {
+        let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+        let gd_not = {
+            let mut gd_not = "( not ".to_owned();
+            gd_not.push_str(gd_1);
+            gd_not.push_str(" )");
+            gd_not.push_str(rest);
+            gd_not
+        };
+        assert_eq!(
+            parse_gd(&gd_not),
+            Ok((rest, GoalDefinition::Not(Box::new(gd_1_ast))))
+        );
+    }
+    // <gd> ::=:disjunctive-preconditions (imply <gd> <gd>)
+    {
+        let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+        let (_, gd_2_ast) = parse_gd(gd_2).unwrap();
+        let gd_imply = {
+            let mut gd_imply = "( imply ".to_owned();
+            gd_imply.push_str(gd_1);
+            gd_imply.push(' ');
+            gd_imply.push_str(gd_2);
+            gd_imply.push_str(" )");
+            gd_imply.push_str(rest);
+            gd_imply
+        };
+        assert_eq!(
+            parse_gd(&gd_imply),
+            Ok((
+                rest,
+                GoalDefinition::Imply(Box::new(gd_1_ast), Box::new(gd_2_ast))
+            ))
+        );
+    }
+    // <gd> ::=:existential-preconditions
+    //     (exists (<typed list (variable)>*) <gd>)
+    {
+        let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+        let (_, typed_lists_ast) = parse_typed_lists(parse_variable)(typed_lists).unwrap();
+        let gd_exists = {
+            let mut gd_exists = "( exists ( ".to_owned();
+            gd_exists.push_str(typed_lists);
+            gd_exists.push_str(" ) ");
+            gd_exists.push_str(gd_1);
+            gd_exists.push_str(" )");
+            gd_exists.push_str(rest);
+            gd_exists
+        };
+        assert_eq!(
+            parse_gd(&gd_exists),
+            Ok((
+                rest,
+                GoalDefinition::Exists(vec![typed_lists_ast], Box::new(gd_1_ast))
+            ))
+        );
+    }
+    // <gd> ::=:universal-preconditions
+    //     (forall (<typed list (variable)>*) <gd>)
+    {
+        {
+            let (_, gd_1_ast) = parse_gd(gd_1).unwrap();
+            let (_, typed_lists_ast) = parse_typed_lists(parse_variable)(typed_lists).unwrap();
+            let gd_forall = {
+                let mut gd_forall = "( forall ( ".to_owned();
+                gd_forall.push_str(typed_lists);
+                gd_forall.push_str(" ) ");
+                gd_forall.push_str(gd_1);
+                gd_forall.push_str(" )");
+                gd_forall.push_str(rest);
+                gd_forall
+            };
+            assert_eq!(
+                parse_gd(&gd_forall),
+                Ok((
+                    rest,
+                    GoalDefinition::ForAll(vec![typed_lists_ast], Box::new(gd_1_ast))
+                ))
+            );
+        }
+    }
+    // <gd> ::= (= <term> <term>)
+    {
+        let term_1 = "term_01";
+        let term_2 = "term_02";
+        let (_, term_1_ast) = parse_term(term_1).unwrap();
+        let (_, term_2_ast) = parse_term(term_2).unwrap();
+        let gd_eq = {
+            let mut gd_eq = "( = ".to_owned();
+            gd_eq.push_str(term_1);
+            gd_eq.push(' ');
+            gd_eq.push_str(term_2);
+            gd_eq.push_str(" )");
+            gd_eq.push_str(rest);
+            gd_eq
+        };
+        assert_eq!(
+            parse_gd(&gd_eq),
+            Ok((rest, GoalDefinition::Eq(term_1_ast, term_2_ast)))
+        );
+    }
 }
 
 /**

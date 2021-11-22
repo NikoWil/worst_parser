@@ -359,7 +359,7 @@ pub fn parse_gd<'input>(input: &'input str) -> IRes<GoalDefinition> {
         delimited(
             tuple((tag("("), whitespace, tag("imply"), whitespace)),
             pair(terminated(parse_gd, whitespace), parse_gd),
-            tag(")"),
+            pair(whitespace, tag(")")),
         )(input)
         .map(|(next_input, (gd_1, gd_2))| {
             (
