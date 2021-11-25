@@ -10,8 +10,9 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    AtomicFormula, BaseType, ConstraintDef, GoalDefinition, Literal, OrderingDef, Predicate,
-    PredicateId, SubtaskId, Term, Type, TypedList, TypedLists, Types, VariableId,
+    AtomicFormula, BaseType, CEffect, ConstraintDef, Effect, GoalDefinition, Literal, OrderingDef,
+    PEffect, Predicate, PredicateId, SubtaskId, Term, Type, TypedList, TypedLists, Types,
+    VariableId,
 };
 
 // TODO: add whitespace between '(' and labels like ':predicates' or not?
@@ -497,6 +498,139 @@ pub fn parse_term(input: &str) -> IRes<Term> {
     } else {
         parse_variable(input).map(|(next_input, var)| (next_input, Term::Var(var)))
     }
+}
+
+/**
+ * <effect> ::= ()
+ * <effect> ::= (and <c-effect>*)
+ * <effect> ::= <c-effect>
+ */
+pub fn parse_effect<'input>(input: &'input str) -> IRes<Effect> {
+    let empty_effect = |input: &'input str| {
+        tuple((tag("("), whitespace, tag(")")))(input)
+            .map(|(next_input, _)| (next_input, Vec::<CEffect>::new()))
+    };
+
+    let and_effect = |input: &'input str| {
+        context(
+            "and effect",
+            delimited(
+                tuple((tag("("), whitespace, tag("and"), whitespace)),
+                many0(terminated(parse_c_effect, whitespace)),
+                tag(")"),
+            ),
+        )(input)
+    };
+
+    let single_effect = |input: &'input str| {
+        context("single effect", parse_c_effect)(input)
+            .map(|(next_input, ceffect)| (next_input, vec![ceffect]))
+    };
+
+    context("effect", alt((empty_effect, and_effect, single_effect)))(input)
+        .map(|(next_input, ceffects)| (next_input, Effect { ceffects }))
+}
+
+/**
+ * <c-effect> ::=:conditional-effects
+ *     (forall (<variable>*) <effect>)
+ * <c-effect> ::=:conditional-effects
+ *     (when <gd> <cond-effect>)
+ * <c-effect> ::= <p-effect>
+ */
+pub fn parse_c_effect<'input>(input: &'input str) -> IRes<CEffect> {
+    let forall_c_effect = |input: &'input str| {
+        context(
+            "forall c-effect",
+            delimited(
+                tuple((
+                    tag("("),
+                    whitespace,
+                    tag("forall"),
+                    whitespace,
+                    tag("("),
+                    whitespace,
+                )),
+                pair(
+                    many0(terminated(parse_variable, whitespace)),
+                    preceded(pair(tag(")"), whitespace), parse_effect),
+                ),
+                pair(whitespace, tag(")")),
+            ),
+        )(input)
+        .map(|(next_input, (variables, effect))| {
+            (next_input, CEffect::ForAll(variables, Box::new(effect)))
+        })
+    };
+
+    let when_c_effect = |input: &'input str| {
+        context(
+            "when c-effect",
+            delimited(
+                tuple((tag("("), whitespace, tag("when"), whitespace)),
+                pair(terminated(parse_gd, whitespace), parse_cond_effect),
+                pair(whitespace, tag(")")),
+            ),
+        )(input)
+        .map(|(next_input, (gd, p_effects))| (next_input, CEffect::When(gd, p_effects)))
+    };
+
+    let single_c_effect = |input: &'input str| {
+        context("single c-effect", parse_p_effect)(input)
+            .map(|(next_input, peffect)| (next_input, CEffect::Single(peffect)))
+    };
+
+    context(
+        "c-effect",
+        alt((forall_c_effect, when_c_effect, single_c_effect)),
+    )(input)
+}
+
+/**
+ * <p-effect> ::= (not <atomic formula(term)>)
+ * <p-effect> ::= <atomic formula(term)>
+ */
+pub fn parse_p_effect<'input>(input: &'input str) -> IRes<PEffect> {
+    let not_p_effect = |input: &'input str| {
+        context(
+            "not p-effect",
+            delimited(
+                tuple((tag("("), whitespace, tag("not"), whitespace)),
+                parse_atomic_formula(parse_term),
+                pair(whitespace, tag(")")),
+            ),
+        )(input)
+        .map(|(next_input, effect)| (next_input, PEffect::Not(effect)))
+    };
+
+    let yes_p_effect = |input: &'input str| {
+        context("yes p-effect", parse_atomic_formula(parse_term))(input)
+            .map(|(next_input, effect)| (next_input, PEffect::Yes(effect)))
+    };
+
+    context("p-effect", alt((not_p_effect, yes_p_effect)))(input)
+}
+
+/**
+ * <cond-effect> ::= (and <p-effect>*)
+ * <cond-effect> ::= <p-effect>
+ */
+pub fn parse_cond_effect<'input>(input: &'input str) -> IRes<Vec<PEffect>> {
+    let list_cond_effect = context(
+        "list cond-effect",
+        delimited(
+            tuple((tag("("), whitespace, tag("and"), whitespace)),
+            many0(terminated(parse_p_effect, whitespace)),
+            tag(")"),
+        ),
+    );
+
+    let single_cond_effect = |input: &'input str| {
+        context("single cond-effect", parse_p_effect)(input)
+            .map(|(next_input, effect)| (next_input, vec![effect]))
+    };
+
+    context("cond-effect", alt((list_cond_effect, single_cond_effect)))(input)
 }
 
 pub fn parse_p_class(input: &str) -> IRes<&str> {

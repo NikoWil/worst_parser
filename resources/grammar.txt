@@ -51,8 +51,8 @@ $       | (and <ordering-def>+)
 $   <ordering-def> ::=
 $       (<subtask-id> "<" <subtask-id>)
 
-<constraint-defs> ::= () | <constraint-def>
-    | (and <constraint-def>+)
+$   <constraint-defs> ::= () | <constraint-def>
+$       | (and <constraint-def>+)
 $   <constraint-def> ::= ()
 $       | (not (= <term> <term>))
 $       | (= <term> <term>)
@@ -78,18 +78,18 @@ $   <literal (t)> ::= (not <atomic formula(t)>)
 $   <atomic formula(t)> ::= (<predicate> t*)
 $   <term> ::= <name>
 $   <term> ::= <variable>
-<effect> ::= ()
-<effect> ::= (and <c-effect>*)
-<effect> ::= <c-effect>
-<c-effect> ::=:conditional-effects
-    (forall (<variable>*) <effect>)
-<c-effect> ::=:conditional-effects
-    (when <gd> <cond-effect>)
-<c-effect> ::= <p-effect>
-<p-effect> ::= (not <atomic formula(term)>)
-<p-effect> ::= <atomic formula(term)>
-<cond-effect> ::= (and <p-effect>*)
-<cond-effect> ::= <p-effect>
+$   <effect> ::= ()
+$   <effect> ::= (and <c-effect>*)
+$   <effect> ::= <c-effect>
+$   <c-effect> ::=:conditional-effects
+$       (forall (<variable>*) <effect>)
+$   <c-effect> ::=:conditional-effects
+$       (when <gd> <cond-effect>)
+$   <c-effect> ::= <p-effect>
+$   <p-effect> ::= (not <atomic formula(term)>)
+$   <p-effect> ::= <atomic formula(term)>
+$   <cond-effect> ::= (and <p-effect>*)
+$   <cond-effect> ::= <p-effect>
 
 <problem> ::= (define (problem <name>)
     (:domain <name>)

@@ -158,3 +158,37 @@ pub enum Term<'input> {
     Name(&'input str),
     Var(VariableId<'input>),
 }
+
+/**
+ * <effect> ::= ()
+ * <effect> ::= (and <c-effect>*)
+ * <effect> ::= <c-effect>
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub struct Effect<'input> {
+    pub ceffects: Vec<CEffect<'input>>,
+}
+
+/**
+ * <c-effect> ::=:conditional-effects
+ *     (forall (<variable>*) <effect>)
+ * <c-effect> ::=:conditional-effects
+ *     (when <gd> <cond-effect>)
+ * <c-effect> ::= <p-effect>
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum CEffect<'input> {
+    ForAll(Vec<VariableId<'input>>, Box<Effect<'input>>),
+    When(GoalDefinition<'input>, Vec<PEffect<'input>>),
+    Single(PEffect<'input>),
+}
+
+/**
+ * <p-effect> ::= (not <atomic formula(term)>)
+ * <p-effect> ::= <atomic formula(term)>
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub enum PEffect<'input> {
+    Yes(AtomicFormula<'input, Term<'input>>),
+    Not(AtomicFormula<'input, Term<'input>>),
+}
