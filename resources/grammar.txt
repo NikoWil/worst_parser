@@ -7,9 +7,9 @@
     <method-def>*
     <action-def>*)
 
-<require-def> ::=
-    (:requirements <require-key>+)
-<require-key> ::= ...
+$   <require-def> ::=
+$       (:requirements <require-key>+)
+$   <require-key> ::= ...
 $   <types-def> ::= (:types <types>+)
 $   <types> ::= <typed list (name)>
 $       | <base-type>
@@ -40,10 +40,10 @@ $   <type> ::= <primitive-type>
     [:order[ing] <ordering-defs>]
     [:constraints <constraint-defs>]
 
-<subtask-defs> ::= () | <subtask-def>
-    | (and <subtask-def>+)
-<subtask-def> ::= (<task-symbol> <term>*)
-    | (<subtask-id> (<task-symbol> <term>*))
+$   <subtask-defs> ::= () | <subtask-def>
+$       | (and <subtask-def>+)
+$   <subtask-def> ::= (<task-symbol> <term>*)
+$       | (<subtask-id> (<task-symbol> <term>*))
 $    <subtask-id> ::= <name>
 
 $   <ordering-defs> ::= () | <ordering-def>
@@ -57,9 +57,9 @@ $   <constraint-def> ::= ()
 $       | (not (= <term> <term>))
 $       | (= <term> <term>)
 
-<action-def> ::= (:action <task-def>
-    [:precondition <gd>]
-    [:effects <effect>])
+$   <action-def> ::= (:action <task-def>
+$       [:precondition <gd>]
+$       [:effects <effect>])
 
 $   <gd> ::= ()
 $   <gd> ::= <atomic formula (term)>
@@ -98,11 +98,11 @@ $   <cond-effect> ::= <p-effect>
     [<p-htn>]
     <p-init>
     [<p-goal>])
-<p-object-declaration> ::=
-    (:objects <typed list (name)>)
-<p-init> ::= (:init <init-el>*)
-<init-el> ::= <literal (name)>
-<p-goal> ::= (:goal <gd>)
+$   <p-object-declaration> ::=
+$       (:objects <typed list (name)>)
+$   <p-init> ::= (:init <init-el>*)
+$   <init-el> ::= <literal (name)>
+$   <p-goal> ::= (:goal <gd>)
 
 <p-htn> ::= (<p-class>
     [:parameters (<typed list (variable)>)]

@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
     character::complete::{alpha1, alphanumeric1},
-    combinator::recognize,
+    combinator::{opt, recognize},
     error::{context, VerboseError},
     multi::{many0, many1},
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -10,12 +10,11 @@ use nom::{
 };
 
 use crate::syntaxtree::{
-    AtomicFormula, BaseType, CEffect, ConstraintDef, Effect, GoalDefinition, Literal, OrderingDef,
-    PEffect, Predicate, PredicateId, SubtaskId, Term, Type, TypedList, TypedLists, Types,
-    VariableId,
+    ActionDef, AtomicFormula, BaseType, CEffect, ConstraintDef, Effect, GoalDefinition, Literal,
+    OrderingDef, PEffect, Predicate, PredicateId, SubtaskDef, SubtaskId, Term, Type, TypedList,
+    TypedLists, Types, VariableId,
 };
 
-// TODO: add whitespace between '(' and labels like ':predicates' or not?
 pub type InputType<'input> = &'input str;
 pub type Res<I, O> = IResult<I, O, VerboseError<I>>;
 pub type IRes<'input, O> = Res<InputType<'input>, O>;
@@ -23,6 +22,28 @@ pub type IRes<'input, O> = Res<InputType<'input>, O>;
 pub fn whitespace(input: &str) -> IRes<&str> {
     let chars = " \t\r\n";
     take_while(move |c| chars.contains(c))(input)
+}
+
+/**
+ * <require-def> ::=
+ *     (:requirements <require-key>+)
+ */
+pub fn parse_require_def(input: &str) -> IRes<Vec<&str>> {
+    context(
+        "require-def",
+        delimited(
+            tuple((tag("("), whitespace, tag(":requirements"), whitespace)),
+            many1(terminated(parse_require_key, whitespace)),
+            tag(")"),
+        ),
+    )(input)
+}
+
+/**
+ * <require-key> ::= ...
+ */
+pub fn parse_require_key(input: &str) -> IRes<&str> {
+    context("require-key", preceded(tag(":"), parse_name))(input)
 }
 
 /**
@@ -195,6 +216,99 @@ pub fn parse_type(input: &str) -> IRes<Type> {
 }
 
 /**
+ * <subtask-defs> ::= () | <subtask-def>
+ *     | (and <subtask-def>+)
+ */
+pub fn parse_subtask_defs<'input>(input: &'input str) -> IRes<Vec<SubtaskDef>> {
+    let subtask_defs_empty = |input: &'input str| {
+        context(
+            "subtask-defs empty",
+            tuple((tag("("), whitespace, tag(")"))),
+        )(input)
+        .map(|(next_input, _)| (next_input, Vec::<SubtaskDef>::new()))
+    };
+
+    let subtask_defs_single = |input: &'input str| {
+        context("subtask-defs single", parse_subtask_def)(input)
+            .map(|(next_input, def)| (next_input, vec![def]))
+    };
+
+    let subtask_defs_list = |input: &'input str| {
+        context(
+            "subtask-defs list",
+            delimited(
+                tuple((tag("("), whitespace, tag("and"), whitespace)),
+                many1(terminated(parse_subtask_def, whitespace)),
+                tag(")"),
+            ),
+        )(input)
+    };
+
+    context(
+        "subtask-defs",
+        alt((subtask_defs_empty, subtask_defs_single, subtask_defs_list)),
+    )(input)
+}
+
+/**
+ * <subtask-def> ::= (<task-symbol> <term>*)
+ *     | (<subtask-id> (<task-symbol> <term>*))
+ */
+pub fn parse_subtask_def<'input>(input: &'input str) -> IRes<SubtaskDef> {
+    // TODO: what is task-symbol supposed to be? Assume parse_name for now
+    let no_id = |input: &'input str| {
+        context(
+            "subtask-def no id",
+            delimited(
+                pair(tag("("), whitespace),
+                pair(parse_name, many0(preceded(whitespace, parse_term))),
+                pair(whitespace, tag(")")),
+            ),
+        )(input)
+        .map(|(next_input, (symbol, variables))| {
+            (
+                next_input,
+                SubtaskDef {
+                    id: None,
+                    symbol,
+                    variables,
+                },
+            )
+        })
+    };
+
+    // (<subtask-id> (<task-symbol> <term>*))
+    let with_id = |input: &'input str| {
+        context(
+            "subtask-def with id",
+            delimited(
+                pair(tag("("), whitespace),
+                tuple((
+                    parse_subtask_id,
+                    preceded(
+                        tuple((whitespace, tag("("), whitespace)),
+                        pair(parse_name, many0(preceded(whitespace, parse_term))),
+                    ),
+                )),
+                tuple((whitespace, tag(")"), whitespace, tag(")"))),
+            ),
+        )(input)
+        .map(|(next_input, (id, (symbol, variables)))| {
+            (
+                next_input,
+                SubtaskDef {
+                    id: Some(id),
+                    symbol,
+                    variables,
+                },
+            )
+        })
+    };
+
+    context("subtask-def", alt((no_id, with_id)))(input)
+}
+
+/**
  * <subtask-id> ::= <name>
  */
 pub fn parse_subtask_id(input: &str) -> IRes<SubtaskId> {
@@ -303,6 +417,39 @@ pub fn parse_constraint_def(input: &str) -> IRes<Option<ConstraintDef>> {
     } else {
         tuple((tag("("), whitespace, tag(")")))(input).map(|(next_input, _)| (next_input, None))
     }
+}
+
+/**
+ * <action-def> ::= (:action <task-def>
+ *     [:precondition <gd>]
+ *     [:effects <effect>])
+ */
+pub fn parse_action_def(input: &str) -> IRes<ActionDef> {
+    context(
+        "action-def",
+        delimited(
+            tuple((tag("("), whitespace, tag(":action"), whitespace)),
+            tuple((
+                terminated(parse_name, whitespace),
+                opt(preceded(pair(tag(":precondition"), whitespace), parse_gd)),
+                opt(preceded(
+                    tuple((whitespace, tag(":effects"), whitespace)),
+                    parse_effect,
+                )),
+            )),
+            pair(whitespace, tag(")")),
+        ),
+    )(input)
+    .map(|(next_input, (task_def, precondition, effects))| {
+        (
+            next_input,
+            ActionDef {
+                task_def,
+                precondition,
+                effects,
+            },
+        )
+    })
 }
 
 /**
@@ -631,6 +778,56 @@ pub fn parse_cond_effect<'input>(input: &'input str) -> IRes<Vec<PEffect>> {
     };
 
     context("cond-effect", alt((list_cond_effect, single_cond_effect)))(input)
+}
+
+/**
+ * <p-object-declaration> ::=
+ *     (:objects <typed list (name)>)
+ */
+pub fn parse_p_object_declaration(input: &str) -> IRes<TypedLists<&str>> {
+    context(
+        "p-object-declaration",
+        delimited(
+            tuple((tag("("), whitespace, tag(":objects"), whitespace)),
+            parse_typed_lists(parse_name),
+            pair(whitespace, tag(")")),
+        ),
+    )(input)
+}
+
+/**
+ * <p-init> ::= (:init <init-el>*)
+ */
+pub fn parse_p_init(input: &str) -> IRes<Vec<Literal<&str>>> {
+    context(
+        "p-init",
+        delimited(
+            tuple((tag("("), whitespace, tag(":init"), whitespace)),
+            many0(terminated(parse_init_el, whitespace)),
+            tag(")"),
+        ),
+    )(input)
+}
+
+/**
+ * <init-el> ::= <literal (name)>
+ */
+pub fn parse_init_el(input: &str) -> IRes<Literal<&str>> {
+    context("init-el", parse_literal(parse_name))(input)
+}
+
+/**
+ * <p-goal> ::= (:goal <gd>)
+ */
+pub fn parse_p_goal(input: &str) -> IRes<GoalDefinition> {
+    context(
+        "p-goal",
+        delimited(
+            tuple((tag("("), whitespace, tag(":goal"), whitespace)),
+            parse_gd,
+            pair(whitespace, tag(")")),
+        ),
+    )(input)
 }
 
 pub fn parse_p_class(input: &str) -> IRes<&str> {

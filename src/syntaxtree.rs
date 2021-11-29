@@ -68,6 +68,17 @@ pub enum Type<'input> {
 }
 
 /**
+ * <subtask-def> ::= (<task-symbol> <term>*)
+ *     | (<subtask-id> (<task-symbol> <term>*))
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub struct SubtaskDef<'input> {
+    pub id: Option<SubtaskId<'input>>,
+    pub symbol: &'input str,
+    pub variables: Vec<Term<'input>>,
+}
+
+/**
  * <subtask-id> ::= <name>
  */
 #[derive(Debug, PartialEq, Eq)]
@@ -94,6 +105,18 @@ pub struct OrderingDef<'input> {
 pub enum ConstraintDef<'input> {
     Eq(Term<'input>, Term<'input>),
     NEq(Term<'input>, Term<'input>),
+}
+
+/**
+ * <action-def> ::= (:action <task-def>
+ *     [:precondition <gd>]
+ *     [:effects <effect>])
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub struct ActionDef<'input> {
+    pub task_def: &'input str,
+    pub precondition: Option<GoalDefinition<'input>>,
+    pub effects: Option<Effect<'input>>,
 }
 
 /**
