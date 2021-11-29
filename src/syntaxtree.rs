@@ -39,7 +39,7 @@ pub struct PredicateId<'input> {
  */
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableId<'input> {
-    pub name: Option<&'input str>,
+    pub name: &'input str,
 }
 
 /**
@@ -65,6 +65,25 @@ pub struct TypedList<'input, O> {
 pub enum Type<'input> {
     Single(&'input str),
     List(Vec<&'input str>),
+}
+
+/**
+ * <tasknetwork-def> ::=
+ *     [:[ordered-][sub]tasks
+ *         <subtask-defs>]
+ *     [:order[ing] <ordering-defs>]
+ *     [:constraints <constraint-defs>]
+ */
+#[derive(Debug, PartialEq, Eq)]
+pub struct TasknetworkDef<'input> {
+    pub subtasks: OrderedSubtasks<'input>,
+    pub constraints: Vec<ConstraintDef<'input>>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum OrderedSubtasks<'input> {
+    Total(Vec<SubtaskDef<'input>>),
+    Partial(Vec<SubtaskDef<'input>>, Vec<OrderingDef<'input>>),
 }
 
 /**

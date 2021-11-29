@@ -11,8 +11,8 @@ use nom::{
 
 use crate::syntaxtree::{
     ActionDef, AtomicFormula, BaseType, CEffect, ConstraintDef, Effect, GoalDefinition, Literal,
-    OrderingDef, PEffect, Predicate, PredicateId, SubtaskDef, SubtaskId, Term, Type, TypedList,
-    TypedLists, Types, VariableId,
+    OrderedSubtasks, OrderingDef, PEffect, Predicate, PredicateId, SubtaskDef, SubtaskId,
+    TasknetworkDef, Term, Type, TypedList, TypedLists, Types, VariableId,
 };
 
 pub type InputType<'input> = &'input str;
@@ -155,8 +155,8 @@ pub fn parse_predicate(input: &str) -> IRes<PredicateId> {
  *  Ask Behnke et al what the idea here is
  */
 pub fn parse_variable(input: &str) -> IRes<VariableId> {
-    context("variable", parse_name)(input)
-        .map(|(next_input, name)| (next_input, VariableId { name: Some(name) }))
+    context("variable", preceded(tag("?"), parse_name))(input)
+        .map(|(next_input, name)| (next_input, VariableId { name }))
 }
 
 /**
@@ -213,6 +213,17 @@ pub fn parse_type(input: &str) -> IRes<Type> {
     } else {
         single(input).map(|(next_input, type_id)| (next_input, Type::Single(type_id)))
     }
+}
+
+/**
+ * <tasknetwork-def> ::=
+ *     [:[ordered-][sub]tasks
+ *         <subtask-defs>]
+ *     [:order[ing] <ordering-defs>]
+ *     [:constraints <constraint-defs>]
+ */
+pub fn parse_tasknetwork_def<'input>(input: &'input str) -> IRes<TasknetworkDef> {
+    todo!()
 }
 
 /**

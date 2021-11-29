@@ -150,17 +150,17 @@ fn test_atomic_formula_skeleton() {
                         TypedList {
                             elem_type: Type::Single("object"),
                             elems: vec![
-                                VariableId { name: Some("foo") },
-                                VariableId { name: Some("bar") },
-                                VariableId { name: Some("baz") }
+                                VariableId { name: "foo" },
+                                VariableId { name: "bar" },
+                                VariableId { name: "baz" }
                             ]
                         },
                         TypedList {
                             elem_type: Type::Single("box"),
                             elems: vec![
-                                VariableId { name: Some("x") },
-                                VariableId { name: Some("y") },
-                                VariableId { name: Some("z") }
+                                VariableId { name: "x" },
+                                VariableId { name: "y" },
+                                VariableId { name: "z" }
                             ]
                         }
                     ]
@@ -181,9 +181,9 @@ fn test_atomic_formula_skeleton() {
                     elems: vec![TypedList {
                         elem_type: Type::List(vec!["object", "box", "tree"]),
                         elems: vec![
-                            VariableId { name: Some("foo") },
-                            VariableId { name: Some("bar") },
-                            VariableId { name: Some("baz") }
+                            VariableId { name: "foo" },
+                            VariableId { name: "bar" },
+                            VariableId { name: "baz" }
                         ]
                     },]
                 }
@@ -214,9 +214,9 @@ fn test_typed_list() {
             TypedLists {
                 elems: vec![TypedList {
                     elems: vec![
-                        VariableId { name: Some("a") },
-                        VariableId { name: Some("b") },
-                        VariableId { name: Some("c") }
+                        VariableId { name: "a" },
+                        VariableId { name: "b" },
+                        VariableId { name: "c" }
                     ],
                     elem_type: Type::Single("object")
                 }]
@@ -232,17 +232,17 @@ fn test_typed_list() {
                 elems: vec![
                     TypedList {
                         elems: vec![
-                            VariableId { name: Some("a") },
-                            VariableId { name: Some("b") },
-                            VariableId { name: Some("c") }
+                            VariableId { name: "a" },
+                            VariableId { name: "b" },
+                            VariableId { name: "c" }
                         ],
                         elem_type: Type::Single("object")
                     },
                     TypedList {
                         elems: vec![
-                            VariableId { name: Some("d") },
-                            VariableId { name: Some("e") },
-                            VariableId { name: Some("f") }
+                            VariableId { name: "d" },
+                            VariableId { name: "e" },
+                            VariableId { name: "f" }
                         ],
                         elem_type: Type::Single("box")
                     }
@@ -258,9 +258,9 @@ fn test_typed_list() {
             TypedLists {
                 elems: vec![TypedList {
                     elems: vec![
-                        VariableId { name: Some("a") },
-                        VariableId { name: Some("b") },
-                        VariableId { name: Some("c") }
+                        VariableId { name: "a" },
+                        VariableId { name: "b" },
+                        VariableId { name: "c" }
                     ],
                     elem_type: Type::Single("object"),
                 }],

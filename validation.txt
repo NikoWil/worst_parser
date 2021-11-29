@@ -9,3 +9,4 @@ Validations:
 - all tasks in ordering-def are actually defined in the method
 - the ordering-defs do not form a cycle
 - optional features are only used when the corresponding require-key is set
+- detect full ordering in subtasks if it occurs

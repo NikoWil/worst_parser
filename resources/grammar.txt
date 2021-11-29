@@ -34,11 +34,11 @@ $   <type> ::= <primitive-type>
     [:precondition <gd>]:htn−method−prec
     <tasknetwork-def>)
 
-<tasknetwork-def> ::=
-    [:[ordered-][sub]tasks
-        <subtask-defs>]
-    [:order[ing] <ordering-defs>]
-    [:constraints <constraint-defs>]
+$   <tasknetwork-def> ::=
+$       [:[ordered-][sub]tasks
+$           <subtask-defs>]
+$       [:order[ing] <ordering-defs>]
+$       [:constraints <constraint-defs>]
 
 $   <subtask-defs> ::= () | <subtask-def>
 $       | (and <subtask-def>+)
